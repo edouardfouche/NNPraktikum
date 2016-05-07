@@ -5,7 +5,7 @@ import logging
 
 import numpy as np
 
-from util.activation_functions import Activation
+from util.activation_functions import Activation, timed
 from model.classifier import Classifier
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
@@ -46,7 +46,9 @@ class Perceptron(Classifier):
         # Initialize the weight vector with small random values
         # around 0 and 0.1
         self.weight = np.random.rand(self.trainingSet.input.shape[1])/10
+        self.weight0 = np.random.rand(1)/10
 
+    @timed
     def train(self, verbose=True):
         """Train the perceptron with the perceptron learning algorithm.
 
@@ -58,7 +60,11 @@ class Perceptron(Classifier):
 
         # Here you have to implement the Perceptron Learning Algorithm
         # to change the weights of the Perceptron
-        pass
+        for e in range(self.epochs):
+            for instance,label in zip(self.trainingSet,self.trainingSet.label):
+                output = Activation.sigmoid(np.dot(self.weight, instance) + self.weight0)
+                self.weight += self.learningRate*output*(1-output)*(label-output)*instance
+                self.weight0 += self.learningRate*output*(1-output)*(label-output)*1
 
     def classify(self, testInstance):
         """Classify a single instance.
@@ -75,7 +81,8 @@ class Perceptron(Classifier):
         # Here you have to implement the classification for one instance,
         # i.e., return True if the testInstance is recognized as a 7,
         # False otherwise
-        pass
+        sign = Activation.sign(Activation.sigmoid(np.dot(self.weight, testInstance)+self.weight0)-0.5)
+        return sign[0]
 
     def evaluate(self, test=None):
         """Evaluate a whole dataset.
@@ -102,4 +109,4 @@ class Perceptron(Classifier):
     def fire(self, input):
         """Fire the output of the perceptron corresponding to the input """
         # I already implemented it for you to see how you can work with numpy
-        return Activation.sign(np.dot(np.array(input), self.weight))
+        return Activation.sign(np.dot(np.array(input), self.weight)+self.weight0)

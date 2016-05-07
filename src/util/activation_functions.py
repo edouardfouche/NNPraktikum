@@ -7,7 +7,25 @@ Activation functions which can be used within neurons.
 from numpy import exp
 from numpy import divide
 
+from time import time
+from functools import wraps
 
+
+def timed(function):
+    """
+    Measure the elapsed time of custom functions of the package. Should be used 
+    as a decorator.
+    """
+    @wraps(function)
+    def wrapper(*args, **kwds):
+        """Calculate elapsed time in seconds"""
+        start = time()
+        result = function(*args, **kwds)
+        elapsed = time() - start
+        print("Execution time: %s seconds." %elapsed)
+        return result
+    return wrapper
+    
 class Activation:
     """
     Containing various activation functions and their derivatives
