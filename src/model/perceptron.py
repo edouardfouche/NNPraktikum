@@ -4,9 +4,11 @@ import sys
 import logging
 
 import numpy as np
+from sklearn.metrics import accuracy_score
 
-from util.activation_functions import Activation, timed
+from util.activation_functions import Activation
 from model.classifier import Classifier
+
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
                     level=logging.DEBUG,
@@ -32,7 +34,7 @@ class Perceptron(Classifier):
     trainingSet : list
     validationSet : list
     testSet : list
-    weight : list
+    weight : ndarray
     """
     def __init__(self, train, valid, test, learningRate=0.01, epochs=50):
 
@@ -46,11 +48,18 @@ class Perceptron(Classifier):
         # Initialize the weight vector with small random values
         # around 0 and 0.1
         self.weight = np.random.rand(self.trainingSet.input.shape[1])/10
-        self.weight0 = np.random.rand(1)/10
 
-    @timed
+        # add bias weights at the beginning with the same random initialize
+        np.insert(self.weight, 0, np.random.rand()/10)
+
+        # add bias values ("1"s) at the beginning of all data sets
+        np.insert(self.trainingSet.input, 0, 1, axis=1)
+        np.insert(self.validationSet.input, 0, 1, axis=1)
+        np.insert(self.testSet.input, 0, 1, axis=1)
+
     def train(self, verbose=True):
-        """Train the perceptron with the perceptron learning algorithm.
+        """
+        Train the perceptron with the perceptron learning algorithm.
 
         Parameters
         ----------
@@ -58,13 +67,35 @@ class Perceptron(Classifier):
             Print logging messages with validation accuracy if verbose is True.
         """
 
-        # Here you have to implement the Perceptron Learning Algorithm
-        # to change the weights of the Perceptron
-        for e in range(self.epochs):
-            for instance,label in zip(self.trainingSet,self.trainingSet.label):
-                output = Activation.sigmoid(np.dot(self.weight, instance) + self.weight0)
-                self.weight += self.learningRate*output*(1-output)*(label-output)*instance
-                self.weight0 += self.learningRate*output*(1-output)*(label-output)*1
+        for epoch in range(self.epochs):
+            if verbose:
+                print("Training epoch {0}/{1}.."
+                      .format(epoch + 1, self.epochs))
+
+            self._train_one_epoch()
+
+            if verbose:
+                accuracy = accuracy_score(self.validationSet.label,
+                                          self.evaluate(self.validationSet))
+                print("Accuracy on validation: {0:.2f}%"
+                      .format(accuracy*100))
+                print("-----------------------------")
+            
+
+    def _train_one_epoch(self):
+        """
+        Train one epoch, seeing all input instances
+        """
+
+        for img, label in zip(self.trainingSet.input, self.trainingSet.label):
+            output = self._fire(img)  # real output of the neuron
+            error = int(label) - int(output)
+
+            # online learning: updating weights after seeing 1 instance
+            self.weight += self.learningRate * error * img
+
+        # if we want to do batch learning, accumulate the error
+        # and update the weight outside the loop
 
     def classify(self, testInstance):
         """Classify a single instance.
@@ -81,8 +112,7 @@ class Perceptron(Classifier):
         # Here you have to implement the classification for one instance,
         # i.e., return True if the testInstance is recognized as a 7,
         # False otherwise
-        sign = Activation.sign(Activation.sigmoid(np.dot(self.weight, testInstance)+self.weight0)-0.5)
-        return sign[0]
+        return self._fire(testInstance)
 
     def evaluate(self, test=None):
         """Evaluate a whole dataset.
@@ -106,7 +136,7 @@ class Perceptron(Classifier):
         # set.
         return list(map(self.classify, test))
 
-    def fire(self, input):
+    def _fire(self, input):
         """Fire the output of the perceptron corresponding to the input """
         # I already implemented it for you to see how you can work with numpy
-        return Activation.sign(np.dot(np.array(input), self.weight)+self.weight0)
+        return Activation.sign(np.dot(np.array(input), self.weight))
