@@ -57,11 +57,11 @@ class MultilayerPerceptron(Classifier):
         self.input_weights = input_weights
 
         # add bias values ("1"s) at the beginning of all data sets
-        self.training_set.input = np.insert(self.training_set.input, 0, 1,
-                                            axis=1)
-        self.validation_set.input = np.insert(self.validation_set.input, 0, 1,
-                                              axis=1)
-        self.test_set.input = np.insert(self.test_set.input, 0, 1, axis=1)
+        #self.training_set.input = np.insert(self.training_set.input, 0, 1,
+        #                                    axis=1)
+        #self.validation_set.input = np.insert(self.validation_set.input, 0, 1,
+        #                                      axis=1)
+        #self.test_set.input = np.insert(self.test_set.input, 0, 1, axis=1)
 
         # Build up the network from specific layers
         # Here is an example of a MLP acting like the Logistic Regression

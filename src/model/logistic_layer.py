@@ -55,7 +55,7 @@ class LogisticLayer():
 
         # You can have better initialization here
         if weights is None:
-            self.weights = np.random.rand(n_in+1, n_out)/10
+            self.weights = np.random.randn(n_in+1, n_out)/10
         else:
             assert(weights.shape == (n_in + 1, n_out))
             self.weights = weights
