@@ -1,60 +1,50 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from bokeh.plotting import figure, output_file, show
-import pandas
-    
 from data.mnist_seven import MNISTSeven
-#from model.stupid_recognizer import StupidRecognizer
-#from model.perceptron import Perceptron
+
+from model.stupid_recognizer import StupidRecognizer
+from model.perceptron import Perceptron
 from model.logistic_regression import LogisticRegression
+from model.mlp import MultilayerPerceptron
+
 from report.evaluator import Evaluator
+from report.performance_plot import PerformancePlot
+
 
 def main():
-    learningRate=0.05
-    epochs=500
-    
-    data = MNISTSeven("../data/mnist_seven.csv", 3000, 1000, 1000)
-    
-    myLRClassifier = LogisticRegression(data.trainingSet,
-                                        data.validationSet,
-                                        data.testSet,
-                                        learningRate=learningRate,
-                                        epochs=epochs)
-    
-    # Train the classifiers
-    print("=========================")
-    print("Training..")
-    
-    
-    print("\nLogistic Regression training..")
-    result_training, result_validation = myLRClassifier.train()
+    data = MNISTSeven("../data/mnist_seven.csv", 3000, 1000, 1000,
+                       one_hot=False)
+
+    # Logistic Regression
+    act = "softmax" # sigmoid softmax
+    nlayer = 2  # 2, 3, 4 
+    lr = 0.1 # 0.1, 0.05, 0.001
+    myMLPClassifier = MultilayerPerceptron(data.training_set,
+                                           data.validation_set,
+                                           data.test_set,
+                                           learning_rate=lr,
+                                           epochs=100,
+                                           output_activation=act,
+                                           nlayer=nlayer)
+
+    print("\n MLP Training..")
+    myMLPClassifier.train()
     print("Done..")
-    
-    lrPred = myLRClassifier.evaluate()
-    
-    # Report the result
+
+    mlpPred = myMLPClassifier.evaluate()
+
+    # Report the result #
     print("=========================")
     evaluator = Evaluator()
-    
-    
-    print("\nResult of the Logistic Regression recognizer:")
-    #evaluator.printComparison(data.testSet, lrPred)
-    evaluator.printAccuracy(data.testSet, lrPred)
-    
-    visualize(result_training, result_validation, epochs, learningRate)
 
+    print("\nResult of the Multi-layer Perceptron recognizer (on test set):")
+    evaluator.printAccuracy(data.test_set, mlpPred)
 
-def visualize(result_training, result_validation, epochs, learningRate):
-    title = "plot_%sepoches_lr%s.html"%(epochs,str(learningRate).replace(".",","))
-    output_file(title)
-    p = figure(width=800, height=800, title="Logistic neuron with %s epochs, learning rate = %s"%(epochs,learningRate))
-    data_t = pandas.DataFrame.from_dict(result_training, orient="index")
-    data_v = pandas.DataFrame.from_dict(result_validation, orient="index")
-    
-    p.line(list(data_t.index), data_t[0], color="red", legend="training")
-    p.line(list(data_v.index), data_v[0], color="blue", legend="validation")
-    show(p)
+    # Draw
+    plot = PerformancePlot("MLP-%s-%slayers-%slr-"%(act,nlayer, lr))
+    plot.draw_performance_epoch(myMLPClassifier.performances,
+                                myMLPClassifier.epochs)
 
 if __name__ == '__main__':
     main()
