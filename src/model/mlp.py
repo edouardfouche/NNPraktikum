@@ -68,11 +68,11 @@ class MultilayerPerceptron(Classifier):
         self.layers = []
         #output_activation = "sigmoid"
         #self.layers.append(LogisticLayer(train.input.shape[1], 1, None, output_activation, False))
-        self.layers.append(LogisticLayer(train.input.shape[1], 10, None, output_activation,
+        self.layers.append(LogisticLayer(train.input.shape[1], 10, None, activation='sigmoid',
                                    is_classifier_layer=False))
         if nlayer > 2:
             for n in range(0,nlayer-2):  
-                self.layers.append(LogisticLayer(10-1, 10, None, output_activation,
+                self.layers.append(LogisticLayer(10-1, 10, None, activation='sigmoid',
                                    is_classifier_layer=False))
                                    
         self.layers.append(LogisticLayer(10-1, 10, None, output_activation, True))
@@ -108,7 +108,9 @@ class MultilayerPerceptron(Classifier):
         # And remember the activation values of each layer
         """
         self.outp = inp
-        for layer in self.layers:
+        for i,layer in enumerate(self.layers):
+            #if i != 0:
+            #    self.outp = np.insert(inp, 0, 1, axis=0)
             self.outp = layer.forward(self.outp)
             
     def _encode_target(self, target):
@@ -172,10 +174,13 @@ class MultilayerPerceptron(Classifier):
         
         lastlayer = self.layers[-1]
 
-        if self.output_activation == "sigmoid":
-            lastlayer.computeDerivative(next_derivatives=(target-self.outp)*self.outp*(1-self.outp))
-        if self.output_activation == "softmax":
-            lastlayer.computeDerivative(next_derivatives=(target-self.outp))
+        #if self.output_activation == "sigmoid":
+        #    lastlayer.computeDerivative(next_derivatives=(target-self.outp)*self.outp*(1-self.outp))
+        #if self.output_activation == "softmax":
+        #    lastlayer.computeDerivative(next_derivatives=(target-self.outp))
+            
+        #import pdb ; pdb.set_trace()
+        lastlayer.computeDerivative(next_derivatives=target)
 
         for layer,nextlayer in zip(self.layers[::-1][1:], self.layers[::-1][:-1]):         
             layer.computeDerivative(next_derivatives=nextlayer.deltas,next_weights=nextlayer.weights)

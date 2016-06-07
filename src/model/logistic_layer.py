@@ -87,7 +87,7 @@ class LogisticLayer():
         self.outp = outp
         return outp
 
-    def computeDerivative(self, next_derivatives, next_weights=None):
+    def computeDerivative(self, next_derivatives=None, next_weights=None):
         """
         Compute the derivatives (backward)
 
@@ -125,7 +125,10 @@ class LogisticLayer():
         # Or you can explicitly calculate the derivatives for two cases
         # Page 40 Back-propagation slides
         if self.is_classifier_layer:
-             self.deltas = next_derivatives # - self.outp) #* self.activation_derivative(self.outp)
+             if self.activation_string == 'softmax':
+                 self.deltas = next_derivatives - self.outp #* self.activation_derivative(self.outp)
+             if self.activation_string == 'sigmoid':
+                 self.deltas = (next_derivatives - self.outp) * self.activation_derivative(self.outp)
         else:
              #import pdb ; pdb.set_trace()
              self.deltas = (self.activation_derivative(self.outp) * np.dot(next_derivatives, next_weights))
@@ -145,6 +148,6 @@ class LogisticLayer():
         fire = self.activation(np.dot(np.array(inp), self.weights))
         #import pdb; pdb.set_trace()
         #if self.is_classifier_layer is False:
-         #   fire = np.insert(fire, 0, 1, axis=0)
+        #   fire = np.insert(fire, 0, 1, axis=0)
         
         return fire

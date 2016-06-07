@@ -19,7 +19,7 @@ def main():
     # Logistic Regression
     act = "softmax" # sigmoid softmax
     nlayer = 2  # 2, 3, 4 
-    lr = 0.1 # 0.1, 0.05, 0.001
+    lr = 0.005 # 0.1, 0.05, 0.001
     myMLPClassifier = MultilayerPerceptron(data.training_set,
                                            data.validation_set,
                                            data.test_set,
