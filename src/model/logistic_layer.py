@@ -37,7 +37,7 @@ class LogisticLayer():
     """
 
     def __init__(self, n_in, n_out, weights=None,
-                 activation='sigmoid', is_classifier_layer=False):
+                 activation='sigmoid', is_classifier_layer=False, is_input_layer=False):
 
         # Get activation function from string
         self.activation_string = activation
@@ -61,6 +61,7 @@ class LogisticLayer():
             self.weights = weights
 
         self.is_classifier_layer = is_classifier_layer
+        self.is_input_layer = is_input_layer
 
         # Some handy properties of the layers
         self.size = self.n_out
@@ -81,7 +82,11 @@ class LogisticLayer():
             a numpy array (n_out,1) containing the output of the layer
         """
 
-        # Here you have to implement the forward pass
+        # We add an input 1 as first element if it is not the input layer 
+        # (it is already done for this one)
+        if self.is_input_layer is not True:
+            inp = np.insert(inp, 0, 1, axis=0)
+            
         self.inp = inp
         outp = self._fire(inp)
         self.outp = outp
@@ -109,36 +114,27 @@ class LogisticLayer():
         # In case of the output layer, next_weights is array of 1
         # and next_derivatives - the derivative of the error will be the errors
         # Please see the call of this method in LogisticRegression.
-        #self.deltas = (self.outp *
-        #               (1 - self.outp) *
-        #               np.dot(next_derivatives, next_weights))
 
-        # Or more general: output*(1-output) is the derivatives of sigmoid
-        # (sigmoid_prime)
-        # self.deltas = (Activation.sigmoid_prime(self.outp) *
-        #                np.dot(next_derivatives, next_weights))
-
-        # Or even more general: doesn't care which activation function is used
-        # self.deltas = (self.activation_derivative(self.outp) *
-        #                np.dot(next_derivatives, next_weights))
-
-        # Or you can explicitly calculate the derivatives for two cases
-        # Page 40 Back-propagation slides
         if self.is_classifier_layer:
-             if self.activation_string == 'softmax':
-                 self.deltas = next_derivatives - self.outp #* self.activation_derivative(self.outp)
-             if self.activation_string == 'sigmoid':
-                 self.deltas = (next_derivatives - self.outp) * self.activation_derivative(self.outp)
+            self._computeOutputLayerDerivative(target=next_derivatives)
         else:
-             #import pdb ; pdb.set_trace()
-             self.deltas = (self.activation_derivative(self.outp) * np.dot(next_derivatives, next_weights))
-        # Or you can have two computeDerivative methods, feel free to call
-        # the other is computeOutputLayerDerivative or such.
-
+            self._computeHiddenLayerDerivative(next_derivatives=next_derivatives, next_weights=next_weights)
+             
+    def _computeOutputLayerDerivative(self, target):
+        if self.activation_string == 'softmax':
+            self.deltas = target - self.outp #* self.activation_derivative(self.outp)
+        elif self.activation_string == 'sigmoid':
+            self.deltas = (target - self.outp) * self.activation_derivative(self.outp)
+        
+    def _computeHiddenLayerDerivative(self, next_derivatives, next_weights):
+        # [1:] to filter out the weights of the biais
+        self.deltas = (self.activation_derivative(self.outp) * np.dot(next_weights[1:], next_derivatives))
+        
     def updateWeights(self, learning_rate):
         """
         Update the weights of the layer
         """
+        # 
         for neuron in range(0, self.n_out):
             self.weights[:, neuron] += (learning_rate *
                                         self.deltas[neuron] *
@@ -146,8 +142,4 @@ class LogisticLayer():
 
     def _fire(self, inp):
         fire = self.activation(np.dot(np.array(inp), self.weights))
-        #import pdb; pdb.set_trace()
-        #if self.is_classifier_layer is False:
-        #   fire = np.insert(fire, 0, 1, axis=0)
-        
         return fire

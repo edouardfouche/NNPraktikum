@@ -16,7 +16,8 @@ class MultilayerPerceptron(Classifier):
 
     def __init__(self, train, valid, test, layers=None, input_weights=None,
                  output_task='classification', output_activation='sigmoid',
-                 cost='crossentropy', learning_rate=0.01, epochs=50, nlayer=2):
+                 cost='crossentropy', learning_rate=0.01, epochs=50, neuronHidden=50, nlayer=2, decay=0.99,
+                 minibatch= None):
 
         """
         A digit-7 recognizer based on logistic regression algorithm
@@ -48,6 +49,8 @@ class MultilayerPerceptron(Classifier):
         self.training_set = train
         self.validation_set = valid
         self.test_set = test
+        self.decay = decay
+        self.minibatch = minibatch
 
         # Record the performance of each epoch for later usages
         # e.g. plotting, reporting..
@@ -56,27 +59,17 @@ class MultilayerPerceptron(Classifier):
         self.layers = layers
         self.input_weights = input_weights
 
-        # add bias values ("1"s) at the beginning of all data sets
-        #self.training_set.input = np.insert(self.training_set.input, 0, 1,
-        #                                    axis=1)
-        #self.validation_set.input = np.insert(self.validation_set.input, 0, 1,
-        #                                      axis=1)
-        #self.test_set.input = np.insert(self.test_set.input, 0, 1, axis=1)
-
-        # Build up the network from specific layers
-        # Here is an example of a MLP acting like the Logistic Regression
         self.layers = []
-        #output_activation = "sigmoid"
-        #self.layers.append(LogisticLayer(train.input.shape[1], 1, None, output_activation, False))
-        self.layers.append(LogisticLayer(train.input.shape[1], 10, None, activation='sigmoid',
-                                   is_classifier_layer=False))
+        self.layers.append(LogisticLayer(train.input.shape[1], neuronHidden, None, activation='sigmoid',
+                                   is_classifier_layer=False, is_input_layer=True))
         if nlayer > 2:
             for n in range(0,nlayer-2):  
-                self.layers.append(LogisticLayer(10-1, 10, None, activation='sigmoid',
-                                   is_classifier_layer=False))
+                self.layers.append(LogisticLayer(neuronHidden, neuronHidden, None, activation='sigmoid',
+                                   is_classifier_layer=False, is_input_layer=False))
                                    
-        self.layers.append(LogisticLayer(10-1, 10, None, output_activation, True))
-        
+        self.layers.append(LogisticLayer(neuronHidden, 10, None, output_activation, 
+                                         is_classifier_layer=True, is_input_layer=False))
+        # 100 100 great ! 93
         self.outp = None
         
         # add bias values ("1"s) at the beginning of all data sets
@@ -85,6 +78,13 @@ class MultilayerPerceptron(Classifier):
         self.validation_set.input = np.insert(self.validation_set.input, 0, 1,
                                               axis=1)
         self.test_set.input = np.insert(self.test_set.input, 0, 1, axis=1)
+        
+        print("Created network:")
+        print("- %s layer(s)"%nlayer)
+        print("- %s neurons in hidden layer(s)"%neuronHidden)
+        print("- %s as output activation"%output_activation)
+        print("- %s as learning rate, with %s decay"%(learning_rate,decay))
+        
 
     def _get_layer(self, layer_index):
         return self.layers[layer_index]
@@ -109,8 +109,6 @@ class MultilayerPerceptron(Classifier):
         """
         self.outp = inp
         for i,layer in enumerate(self.layers):
-            #if i != 0:
-            #    self.outp = np.insert(inp, 0, 1, axis=0)
             self.outp = layer.forward(self.outp)
             
     def _encode_target(self, target):
@@ -172,18 +170,16 @@ class MultilayerPerceptron(Classifier):
         """
         target = self._encode_target(target)
         
+        if self.minibatch:
+            for layer in self.layers:
+                layer.deltas = layer.deltas / self.minibatch
+        
         lastlayer = self.layers[-1]
 
-        #if self.output_activation == "sigmoid":
-        #    lastlayer.computeDerivative(next_derivatives=(target-self.outp)*self.outp*(1-self.outp))
-        #if self.output_activation == "softmax":
-        #    lastlayer.computeDerivative(next_derivatives=(target-self.outp))
-            
-        #import pdb ; pdb.set_trace()
-        lastlayer.computeDerivative(next_derivatives=target)
+        lastlayer.computeDerivative(target)
 
         for layer,nextlayer in zip(self.layers[::-1][1:], self.layers[::-1][:-1]):         
-            layer.computeDerivative(next_derivatives=nextlayer.deltas,next_weights=nextlayer.weights)
+            layer.computeDerivative(nextlayer.deltas,nextlayer.weights)
 
     def _update_weights(self, learning_rate):
         """
@@ -204,13 +200,17 @@ class MultilayerPerceptron(Classifier):
         verbose : boolean
             Print logging messages with validation accuracy if verbose is True.
         """
+        train = []
+        for img, label in zip(self.training_set.input, self.training_set.label):
+            train.append((img, label))
+            
         for epoch in range(self.epochs):
             if verbose:
                 print("Training epoch {0}/{1}.."
                       .format(epoch + 1, self.epochs))
 
-            self._train_one_epoch()
-
+            self._train_one_epoch(train)
+            
             if verbose:
                 accuracy = accuracy_score(self.validation_set.label,
                                           self.evaluate(self.validation_set))
@@ -219,15 +219,25 @@ class MultilayerPerceptron(Classifier):
                 self.performances.append(accuracy)
                 print("Accuracy on validation: {0:.2f}%"
                       .format(accuracy * 100))
+                print("Learning rate: %s"%self.learning_rate)
                 print("-----------------------------")
+            
+            self.learning_rate = self.learning_rate * self.decay
+                
 
-    def _train_one_epoch(self):
+    def _train_one_epoch(self, train):
         """
         Train one epoch, seeing all input instances
         """
-        for img, label in zip(self.training_set.input,
-                              self.training_set.label):
+        # array_split
+        #import pdb ; pdb.set_trace()
+            
+        # Shuffle the training set
+        np.random.shuffle(train)
+        
+        for img, label in train:
             # Do a forward pass to calculate the output and the error
+            #sself._init_deltas()
             self._feed_forward(img)
             
             self._compute_error(label)
@@ -239,8 +249,6 @@ class MultilayerPerceptron(Classifier):
         # Classify an instance given the model of the classifier
         # You need to implement something here
         self._feed_forward(test_instance)
-        #if True in np.isnan(self.outp):
-        #    import pdb ; pdb.set_trace()
         outp = self._decode_target(self.outp)
         return outp
 

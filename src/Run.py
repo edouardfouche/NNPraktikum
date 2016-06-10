@@ -18,15 +18,22 @@ def main():
 
     # Logistic Regression
     act = "softmax" # sigmoid softmax
-    nlayer = 2  # 2, 3, 4 
-    lr = 0.005 # 0.1, 0.05, 0.001
+    nlayer = 3  # 2, 3, 4 
+    lr = 0.05 # 0.1, 0.05, 0.001
+    decay = 0.99
+    minibatch= None  # Not ready yet 
+    # number of neurones in the hidden layers
+    neuronHidden = 100
     myMLPClassifier = MultilayerPerceptron(data.training_set,
                                            data.validation_set,
                                            data.test_set,
                                            learning_rate=lr,
                                            epochs=100,
                                            output_activation=act,
-                                           nlayer=nlayer)
+                                           nlayer=nlayer,
+                                           neuronHidden = neuronHidden,
+                                           decay=decay,
+                                           minibatch = minibatch)
 
     print("\n MLP Training..")
     myMLPClassifier.train()
@@ -42,7 +49,7 @@ def main():
     evaluator.printAccuracy(data.test_set, mlpPred)
 
     # Draw
-    plot = PerformancePlot("MLP-%s-%slayers-%slr-"%(act,nlayer, lr))
+    plot = PerformancePlot("MLP-%s-%slayers-%slr-%s#hidden-%sdecay"%(act,nlayer, lr,neuronHidden,decay))
     plot.draw_performance_epoch(myMLPClassifier.performances,
                                 myMLPClassifier.epochs)
 
