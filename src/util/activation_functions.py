@@ -6,7 +6,6 @@ Activation functions which can be used within neurons.
 
 from numpy import exp
 from numpy import divide
-import numpy as np
 
 
 class Activation:
@@ -53,10 +52,8 @@ class Activation:
     @staticmethod
     def softmax(outp):
         # Here you have to code the softmax function
-        result = exp(outp)/sum(exp((outp)))
-        if True in np.isnan(result):
-            result = np.array([1 if np.isnan(x) else 0 for x in result])
-        return result
+        partly_output = exp(outp)
+        return partly_output / partly_output.sum()
 
     @staticmethod
     def softmax_prime(outp):

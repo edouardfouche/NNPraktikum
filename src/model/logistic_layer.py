@@ -37,7 +37,7 @@ class LogisticLayer():
     """
 
     def __init__(self, n_in, n_out, weights=None,
-                 activation='sigmoid', is_classifier_layer=False, is_input_layer=False):
+                 activation='sigmoid', is_classifier_layer=False):
 
         # Get activation function from string
         self.activation_string = activation
@@ -55,13 +55,12 @@ class LogisticLayer():
 
         # You can have better initialization here
         if weights is None:
-            self.weights = np.random.randn(n_in+1, n_out)/10
+            self.weights = np.random.rand(n_in+1, n_out)/10
         else:
             assert(weights.shape == (n_in + 1, n_out))
             self.weights = weights
 
         self.is_classifier_layer = is_classifier_layer
-        self.is_input_layer = is_input_layer
 
         # Some handy properties of the layers
         self.size = self.n_out
@@ -82,26 +81,23 @@ class LogisticLayer():
             a numpy array (n_out,1) containing the output of the layer
         """
 
-        # We add an input 1 as first element if it is not the input layer 
-        # (it is already done for this one)
-        if self.is_input_layer is not True:
-            inp = np.insert(inp, 0, 1, axis=0)
-            
+        # Here you have to implement the forward pass
         self.inp = inp
         outp = self._fire(inp)
         self.outp = outp
+
         return outp
 
-    def computeDerivative(self, next_derivatives=None, next_weights=None):
+    def computeDerivative(self, next_derivatives, next_weights):
         """
         Compute the derivatives (backward)
 
         Parameters
         ----------
-        next_derivatives: ndarray
-            a numpy array containing the derivatives from next layer
         next_weights : ndarray
             a numpy array containing the weights from next layer
+        next_derivatives: ndarray
+            a numpy array containing the derivatives from next layer
 
         Change deltas
         -------
@@ -114,32 +110,42 @@ class LogisticLayer():
         # In case of the output layer, next_weights is array of 1
         # and next_derivatives - the derivative of the error will be the errors
         # Please see the call of this method in LogisticRegression.
+        # self.deltas = (self.outp *
+        #               (1 - self.outp) *
+        #               np.dot(next_derivatives, next_weights))
 
-        if self.is_classifier_layer:
-            self._computeOutputLayerDerivative(target=next_derivatives)
-        else:
-            self._computeHiddenLayerDerivative(next_derivatives=next_derivatives, next_weights=next_weights)
-             
-    def _computeOutputLayerDerivative(self, target):
-        if self.activation_string == 'softmax':
-            self.deltas = target - self.outp #* self.activation_derivative(self.outp)
-        elif self.activation_string == 'sigmoid':
-            self.deltas = (target - self.outp) * self.activation_derivative(self.outp)
-        
-    def _computeHiddenLayerDerivative(self, next_derivatives, next_weights):
-        # [1:] to filter out the weights of the biais
-        self.deltas = (self.activation_derivative(self.outp) * np.dot(next_weights[1:], next_derivatives))
-        
+        # Or more general: output*(1-output) is the derivatives of sigmoid
+        # (sigmoid_prime)
+        # self.deltas = (Activation.sigmoid_prime(self.outp) *
+        #                np.dot(next_derivatives, next_weights))
+
+        # Or even more general: doesn't care which activation function is used
+        self.deltas = (self.activation_derivative(self.outp) *
+                       np.dot(next_derivatives, next_weights))
+
+        # Or you can explicitly calculate the derivatives for two cases
+        # Page 40 Back-propagation slides
+        # if self.is_classifier_layer:
+        #     self.deltas = (next_derivatives - self.outp) * self.outp * \
+        #                   (1 - self.outp)
+        # else:
+        #     self.deltas = self.outp * (1 - self.outp) * \
+        #                   np.dot(next_derivatives, next_weights)
+        # Or you can have two computeDerivative methods, feel free to call
+        # the other is computeOutputLayerDerivative or such.
+
     def updateWeights(self, learning_rate):
         """
         Update the weights of the layer
         """
-        # 
+
+        # Here the implementation of weight updating mechanism
+        # Page 40 Back-propagation slides
         for neuron in range(0, self.n_out):
             self.weights[:, neuron] += (learning_rate *
                                         self.deltas[neuron] *
                                         self.inp)
 
     def _fire(self, inp):
-        fire = self.activation(np.dot(np.array(inp), self.weights))
-        return fire
+        net_output = np.dot(np.array(inp), self.weights)
+        return self.activation(net_output)

@@ -1,7 +1,4 @@
-#import matplotlib
-#matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-import time
 
 
 class PerformancePlot(object):
@@ -23,8 +20,4 @@ class PerformancePlot(object):
         plt.ylim(ymax=1)
         plt.ylabel("Accuracy")
         plt.xlabel("Epoch")
-        date = time.strftime('%m-%d-%H-%M', time.localtime(time.time()))
-        plt.savefig(self.name+date+".png")
         plt.show()
-        
-        #return plt
